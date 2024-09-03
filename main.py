@@ -5,6 +5,9 @@ SCREEN_HEIGHT = 600
 FPS = 60
 GAME_NAME = "Smash Zombies"
 
+ZOMBIE_WIDTH = 100
+ZOMBIE_HEIGHT = 100
+ZOMBIE_TIME = 2000
 
 #####################################################################
 
@@ -37,6 +40,36 @@ class Sound:
         
 sound = Sound()
 
+#####################################################################
+
+class StateManager:
+    def __init__(self, init_state):
+        self.state = init_state
+        
+    def getState(self):
+        return self.state
+    
+    def setState(self, new_state):
+        self.state = new_state
+
+#####################################################################
+#####################################################################
+
+class Intro:
+    def __init__ (self, screen, state):
+        self.screen = screen
+        self.state = state
+        self.font = pygame.font.SysFont(None, 50)
+        # time variables
+        self.interval = 500 # in milliseconds
+        self.delay = 100
+        self.current = pygame.time.get_ticks()
+        self.next = self.current + self.interval
+        self.index = 0
+        
+        self.fade_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        
+
 ############## MAIN CLASS ###################################
 
 class Game:
@@ -48,35 +81,3 @@ class Game:
         # Set up the display
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption(GAME_NAME)
-        
-        
-        self.running = True
-        self.playing = False
-        self.volume = True
-        self.font = pygame.font.Font(None, 36)
-        self.load_data()
-        self.new()
-        
-    def load_data(self):
-        pass
-    
-    def new(self):
-        pass
-    
-    def run(self):
-        pass
-    
-    def events(self):
-        pass
-    
-    def update(self):
-        pass
-    
-    def draw(self):
-        pass
-    
-    def show_start_screen(self):
-        pass
-    
-    def show_game_over_screen(self):
-        pass
