@@ -71,9 +71,8 @@ class StateManager:
 class ZombieState(Enum):
     SPAWN = 0
     IDLE = 1
-    SMASHED = 2
-    DEAD = 3
-    ESCAPE = 4
+    DEAD = 2
+    ESCAPE = 3
 
 #####################################################################
 
