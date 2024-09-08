@@ -9,6 +9,7 @@ SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
 FPS = 60
 GAME_NAME = "Smash Zombies"
+GAME_TIME = 5 #seconds
 
 ZOMBIE_WIDTH = 94
 ZOMBIE_HEIGHT = 94
@@ -177,9 +178,10 @@ class Zombie:
                 self.current_escape_frame += 1           
 
     def canEscape(self):
-        if self.time_life ==  0:
+        if self.life_time ==  0:
+            self.life_time = ZOMBIE_LIFE_TIME
             return True
-        self.time_life = -1
+        self.life_time = -1
 #####################################################################
 
 class Intro:
@@ -298,7 +300,7 @@ class Menu:
         self.screen.blit(image.menu, (0, 0))
         self.screen.blit(self.play_text, (320, 530))
         self.screen.blit(self.quit_text, (64, 490))
-        self.screen.blit(self.volume_text, (566, 490))
+        self.screen.blit(self.volume_text, (574, 490))
         window.blit(self.screen, (0,0))
         pygame.display.update()
         
@@ -308,13 +310,14 @@ class PlayGame:
     def __init__ (self, screen, state):
         self.screen = screen
         self.state = state
-        self.period = 20
+        self.period = GAME_TIME
         self.countdown = self.period
         self.graves = [(195, 64), (516, 116), (143, 328), (413, 434), (25 , 329), (00 , 540), (71, 596)]
         
         self.cursor_img = image.sword
         self.cursor_rect = self.cursor_img.get_rect()
         self.pause_icon = image.pause
+        self.pause_icon_rect = self.pause_icon.get_rect(topleft=(750, 10))
         
         self.font = pygame.font.Font('fonts/m5x7.ttf', 50)
         self.score = 0
@@ -387,15 +390,15 @@ class PlayGame:
                 
     def displayMissed(self):
         missed_text = self.font.render("Missed: " + str(self.getMissed()), True, WHITE)
-        self.screen.blit(missed_text, (10, 10))
+        self.screen.blit(missed_text, (50, 10))
         
     def displayScore(self):
         score_text = self.font.render("Score: " + str(self.getScore()), True, WHITE)
-        self.screen.blit(score_text, (10, 50))
+        self.screen.blit(score_text, (50, 50))
     
     def displayTime(self):
         time_text = self.font.render("Time: " + str(self.countdown), True, WHITE)
-        self.screen.blit(time_text, (10, 90))
+        self.screen.blit(time_text, (50, 90))
         
     def run(self):
         for event in pygame.event.get():
@@ -433,7 +436,7 @@ class PlayGame:
                     self.state.setState('pause')
         
         self.screen.blit(image.background, (0, 0))
-        self.screen.blit(self.pause_icon, (750, 10))
+        self.screen.blit(self.pause_icon, (735, 20))
         self.drawZombies()
         
         self.displayScore()
@@ -473,11 +476,11 @@ class GameOver:
         pygame.mouse.set_visible(True)
         mouse = pygame.mouse.get_pos()
         
-        if 285 <= mouse[0] <= 515 and 462 <= mouse[1] <= 545:
+        if 285 <= mouse[0] <= 515 and 405 <= mouse[1] <= 488:
             self.play_again_hangover = True
         else:
             self.play_again_hangover = False
-        if 285 <= mouse[0] <= 567 and 473 <= mouse[1] <= 650:
+        if 285 <= mouse[0] <= 515 and 510 <= mouse[1] <= 593:
             self.menu_hangover = True
         else:
             self.menu_hangover = False
@@ -498,21 +501,21 @@ class GameOver:
                 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    if 285 <= mouse[0] <= 515 and 462 <= mouse[1] <= 545:
+                    if 285 <= mouse[0] <= 515 and 405 <= mouse[1] <= 488:
                         self.state.setState('play_game')
                         self.resetState()
                         self.play_game.resetState()
-                    if 285 <= mouse[0] <= 567 and 473 <= mouse[1] <= 650:
+                    if 285 <= mouse[0] <= 515 and 510 <= mouse[1] <= 593:
                         self.state.setState('menu')
                         self.resetState()
                         self.play_game.resetState()
         
         self.screen.blit(image.game_over, (0, 0))
-        self.screen.blit(self.play_again_text, (315, 530))
-        self.screen.blit(self.menu_text, (325, 582))
+        self.screen.blit(self.play_again_text, (318, 420))
+        self.screen.blit(self.menu_text, (360, 525))
         
         score_text = self.font.render("Score: " + str(self.play_game.getScore()), True, WHITE)
-        score_rect = score_text.get_rect(center=(SCREEN_WIDTH // 2, 272))
+        score_rect = score_text.get_rect(center=(SCREEN_WIDTH // 2, 280))
         self.screen.blit(score_text, score_rect)
         
         missed_text = self.font.render("Missed: " + str(self.play_game.getMissed()), True, WHITE)
