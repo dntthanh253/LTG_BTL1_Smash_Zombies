@@ -1,30 +1,34 @@
 import pygame
 import sys
+import random
+import math
 from enum import Enum
+from spritesheets.spritesheet import Spritesheet
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
 FPS = 60
 GAME_NAME = "Smash Zombies"
 
-ZOMBIE_WIDTH = 100
-ZOMBIE_HEIGHT = 100
-ZOMBIE_TIME = 2000
+ZOMBIE_WIDTH = 94
+ZOMBIE_HEIGHT = 94
+ZOMBIE_LIFE_TIME = 2000 #ms
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 YELLOW = (255,250,160)
 
+window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 #####################################################################
 
 class Image:
     def __init__(self):
         self.background = pygame.image.load('images/background.jpg') # Background image
-        self.menu = pygame.image.load('images/menu.jpg') # Hammer image
-        self.game_over = pygame.image.load("") # Game over image
-        self.volume_on = pygame.image.load("") # Volume images
-        self.volume_off = pygame.image.load("")
-        self.zombie = pygame.image.load("") # Zombie images
+        self.menu = pygame.image.load('images/menu.png') # Hammer image
+        self.sword = pygame.image.load('images/sword.png') # Sword image
+        self.click_sword = pygame.image.load('images/click_sword.png') # Click sword image
+        self.pause = pygame.image.load('images/pause.png') # Pause image
+        self.game_over = pygame.image.load('images/game_over.png') # Game over image
     
 image = Image()
 
@@ -32,23 +36,29 @@ image = Image()
 
 class Sound:    
     def __init__(self):
-        self.mainTrack = pygame.mixer.Sound('sounds/maintrack.wav') # Main game sound
+        pygame.mixer.init()
+        self.background = pygame.mixer.Sound('sounds/maintrack.wav') # Main game sound
         self.click = pygame.mixer.Sound('sounds/typing.wav') # Click sound
-        self.smash = pygame.mixer.Sound("") # Smash sound
-        self.game_over = pygame.mixer.Sound("") # Game over sound
-        self.background = pygame.mixer.Sound("") # Background sound
-        self.intro = pygame.mixer.Sound("") # Intro sound
+        self.dead = pygame.mixer.Sound('sounds/dead.mp3') # Smash sound
+        self.sword = pygame.mixer.Sound('sounds/sword.mp3') # Sword sound
+        self.zombie = pygame.mixer.Sound('sounds/zombie.mp3') # Zombie sound
         # More sound here
     
     def turnOn(self, type):
-        if (type == 'mainTrack'):
-            self.mainTrack.play(-1)
+        if (type == 'background'):
+            self.background.play(-1)
         if (type == 'click'):
             self.click.play()
+        if (type == 'dead'):
+            self.dead.play()
+        if (type == 'sword'):
+            self.sword.play()
+        if (type == 'zombie'):
+            self.zombie.play()
             
     def turnOff(self, type):
-        if (type == 'mainTrack'):
-            self.mainTrack.stop()
+        if (type == 'background'):
+            self.background.stop()
         if (type == 'click'):
             self.click.stop()
         
@@ -68,27 +78,108 @@ class StateManager:
 
 #####################################################################
 
+my_spritesheet = Spritesheet('spritesheets/spritesheet.png')
+spawn_frames = [
+    my_spritesheet.parse_sprite('spawn1.png'), #du thi xoa bot
+    my_spritesheet.parse_sprite('spawn2.png'),
+    my_spritesheet.parse_sprite('spawn3.png'), 
+    my_spritesheet.parse_sprite('spawn4.png'), 
+    my_spritesheet.parse_sprite('spawn5.png'), 
+    my_spritesheet.parse_sprite('spawn6.png'),
+    my_spritesheet.parse_sprite('spawn7.png'),
+]
+idle_frames = [
+    my_spritesheet.parse_sprite('idle1.png'), #du thi xoa bot
+    my_spritesheet.parse_sprite('idle2.png'),
+    my_spritesheet.parse_sprite('idle3.png'), 
+    my_spritesheet.parse_sprite('idle4.png'), 
+    my_spritesheet.parse_sprite('idle5.png'), 
+    my_spritesheet.parse_sprite('idle6.png'),
+    my_spritesheet.parse_sprite('idle7.png'),
+]
+dead_frames = [
+    my_spritesheet.parse_sprite('dead1.png'), #du thi xoa bot
+    my_spritesheet.parse_sprite('dead2.png'),
+    my_spritesheet.parse_sprite('dead3.png'), 
+    my_spritesheet.parse_sprite('dead4.png'), 
+    my_spritesheet.parse_sprite('dead5.png'), 
+    my_spritesheet.parse_sprite('dead6.png'),
+    my_spritesheet.parse_sprite('dead7.png'),
+    my_spritesheet.parse_sprite('dead8.png')
+]
+escape_frames = [
+    my_spritesheet.parse_sprite('escape1.png'), #du thi xoa bot
+    my_spritesheet.parse_sprite('escape2.png'),
+    my_spritesheet.parse_sprite('escape3.png'), 
+    my_spritesheet.parse_sprite('escape4.png'), 
+    my_spritesheet.parse_sprite('escape5.png'), 
+    my_spritesheet.parse_sprite('escape6.png'),
+    my_spritesheet.parse_sprite('escape7.png'),
+    my_spritesheet.parse_sprite('escape8.png'),
+    my_spritesheet.parse_sprite('escape9.png'),
+    my_spritesheet.parse_sprite('escape10.png'),
+    my_spritesheet.parse_sprite('escape11.png'),
+    my_spritesheet.parse_sprite('escape12.png'),
+    my_spritesheet.parse_sprite('escape13.png'),
+    my_spritesheet.parse_sprite('escape14.png')
+]
+
 class ZombieState(Enum):
     SPAWN = 0
     IDLE = 1
     DEAD = 2
     ESCAPE = 3
+    NONE = 4
 
 #####################################################################
 
-class Zombie:
+class Zombie: 
     def __init__ (self, x, y, screen):
         self.state = ZombieState.SPAWN
         self.x = x
         self.y = y
         self.screen = screen
+        self.hit_time = 0
+        self.escape_time = 0
+        self.life_time = ZOMBIE_LIFE_TIME
+        self.current_spawn_frame = 0
+        self.current_idle_frame = 0
+        self.current_dead_frame = 0
+        self.current_escape_frame = 0
         
     def changeState(self, new_state):
         self.state = new_state
         
     def draw(self):
-        
+        if self.state == ZombieState.SPAWN:
+            if self.current_spawn_frame < len(spawn_frames):
+                frame = spawn_frames[self.current_spawn_frame]
+                self.screen.blit(frame, (self.x, self.y))
+                self.current_spawn_frame += 1
+            else:
+                self.changeState(ZombieState.IDLE)
+                
+        if self.state == ZombieState.IDLE: #when zombie is smashed, how to change current_frame to 0 ??
+            frame = idle_frames[self.current_idle_frame]
+            self.screen.blit(frame, (self.x, self.y))
+            self.current_idle_frame = (self.current_idle_frame + 1) % len(idle_frames)
+            
+        if self.state == ZombieState.DEAD:
+            if self.current_dead_frame < len(dead_frames):
+                frame = dead_frames[self.current_dead_frame]
+                self.screen.blit(frame, (self.x, self.y))
+                self.current_dead_frame += 1
 
+        if self.state == ZombieState.ESCAPE:    
+            if self.current_escape_frame < len(escape_frames):
+                frame = escape_frames[self.current_escape_frame]
+                self.screen.blit(frame, (self.x, self.y))
+                self.current_escape_frame += 1           
+
+    def canEscape(self):
+        if self.time_life ==  0:
+            return True
+        self.time_life = -1
 #####################################################################
 
 class Intro:
@@ -119,8 +210,12 @@ class Intro:
             self.index += 1
             sound.turnOn('click');
             
-        self.display.fill(BLACK)
-        rendered_text = self.font.render(GAME_NAME[self.index], True, WHITE)
+        if any(pygame.key.get_pressed()) or any(pygame.mouse.get_pressed()):
+            self.state.setState('menu')  # switch screen
+            sound.turnOn('background')
+                
+        self.screen.fill(BLACK)
+        rendered_text = self.font.render(GAME_NAME[:self.index], True, WHITE)
         rectangle = rendered_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
         self.screen.blit(rendered_text, rectangle)
         
@@ -129,7 +224,7 @@ class Intro:
             self.curtain.set_alpha(self.alpha)
             if self.alpha > 255:
                 self.state.setState('menu')
-                sound.turnOn('mainTrack')
+                sound.turnOn('background')
             self.screen.blit(self.curtain, (0, 0))   
             sound.turnOff('click')
 
@@ -176,21 +271,16 @@ class Menu:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1: #left button clicked
                     if 285 <= mouse[0] <= 515 and 514 <= mouse[1] <= 596:
-                        self.state.setState('game')
+                        self.state.setState('play_game')
                     if 29 <= mouse[0] <= 258 and 473 <= mouse[1] <= 555:
                         pygame.quit()
                         sys.exit()
                     if 542 <= mouse[0] <= 773 and 473 <= mouse[1] <= 555:
                         if self.volume_on:    
-                            sound.turnOff('mainTrack')
+                            sound.turnOff('background')
                         else:    
-                            sound.turnOn('mainTrack') 
+                            sound.turnOn('background') 
                         self.volume_on = not self.volume_on       
-            
-        self.screen.blit(image.menu, (0, 0))
-        self.display.blit(self.play_text, (320, 530))
-        self.display.blit(self.quit_text, (64, 490))
-        self.display.blit(self.volume_text, (566, 490))
 
         if 285 <= mouse[0] <= 515 and 514 <= mouse[1] <= 596:
             self.play_hangover = True
@@ -205,21 +295,229 @@ class Menu:
         else:
             self.volume_hangover = False
 
+        self.screen.blit(image.menu, (0, 0))
+        self.screen.blit(self.play_text, (320, 530))
+        self.screen.blit(self.quit_text, (64, 490))
+        self.screen.blit(self.volume_text, (566, 490))
+        window.blit(self.screen, (0,0))
+        pygame.display.update()
+        
 #####################################################################
 
 class PlayGame:
-    def __init__ (self):
+    def __init__ (self, screen, state):
+        self.screen = screen
+        self.state = state
+        self.period = 20
+        self.countdown = self.period
+        self.graves = [(195, 64), (516, 116), (143, 328), (413, 434), (25 , 329), (00 , 540), (71, 596)]
+        
+        self.cursor_img = image.sword
+        self.cursor_rect = self.cursor_img.get_rect()
+        self.pause_icon = image.pause
+        
+        self.font = pygame.font.Font('fonts/m5x7.ttf', 50)
+        self.score = 0
+        self.click_count = 0
+        self.zombies = []
+        self.generate_zombie = pygame.USEREVENT + 1
+        self.appear_interval = 2000 
+        
+        pygame.time.set_timer(self.generate_zombie, self.appear_interval)
+        pygame.time.set_timer(pygame.USEREVENT, 1000)
+
+    def resetState(self):
+        self.countdown = self.period
+        self.click_count = 0
+        self.score = 0
+        
+    def getScore(self):
+        return self.score
+    
+    def getMissed(self):
+        return self.click_count - self.score
+    
+    def checkEmptyGraves(self, position):
+        for zombie in self.zombies:
+            if position == (zombie.x, zombie.y):
+                return False
+        return True
+        
+    def generateZombie(self):
+        new_position = ()
+        while True:
+            index = random.randint(0, 6)
+            new_position = self.graves[index]
+            if self.checkEmptyGraves(new_position):
+                break
+        return new_position
+    
+    
+    def drawZombies(self):
+        for zombie in self.zombies:
+            zombie.draw()
+            
+    def checkCollision(self, click_x, click_y, zombie_x, zombie_y):
+        zombie_center = (zombie_x + 48, zombie_y + 48)
+        distance = math.sqrt(math.pow(zombie_center[0] - click_x, 2) + math.pow(zombie_center[1] - click_y, 2))
+        return distance < 48 
+    
+    def checkZombieSmashed(self, position):
+        current = pygame.time.get_ticks()
+        for zombie in self.zombies:
+            if self.checkCollision(position[0], position[1], zombie.x, zombie.y) and zombie.state == ZombieState.SPAWN:
+                self.score += 1
+                zombie.changeState(ZombieState.DEAD)
+                sound.turnOn('dead')
+                zombie.draw()
+                zombie.hit_time = current
+                
+    def removeZombie(self):
+        for zombie in self.zombies:
+            current = pygame.time.get_ticks()   
+            if zombie.canEscape():
+                zombie.changeState(ZombieState.ESCAPE)
+                zombie.draw()
+                zombie.escape_time = current
+            if zombie.state == ZombieState.DEAD and current - zombie.hit_time > 2000:
+                self.zombies.remove(zombie)
+            if zombie.state == ZombieState.ESCAPE and current - zombie.escape_time > 2000:
+                self.zombies.remove(zombie)
+                zombie.changeState(ZombieState.NONE)
+                
+    def displayMissed(self):
+        missed_text = self.font.render("Missed: " + str(self.getMissed()), True, WHITE)
+        self.screen.blit(missed_text, (10, 10))
+        
+    def displayScore(self):
+        score_text = self.font.render("Score: " + str(self.getScore()), True, WHITE)
+        self.screen.blit(score_text, (10, 50))
+    
+    def displayTime(self):
+        time_text = self.font.render("Time: " + str(self.countdown), True, WHITE)
+        self.screen.blit(time_text, (10, 90))
+        
+    def run(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+                
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    self.cursor_img = image.click_sword
+                    click_position = pygame.mouse.get_pos()
+                    if self.pause_icon_rect.collidepoint(click_position):
+                        self.state.setState('pause')
+                    else:
+                        self.click_count += 1
+                        self.checkZombieSmashed(click_position)
+                        sound.turnOn('sword')
+                else:
+                    self.cursor_img = image.sword
+                    
+            if event.type == self.generate_zombie:
+                self.removeZombie()
+                if len(self.zombies) < 7:
+                    new_position = self.generateZombie()
+                    self.zombies.append(Zombie(new_position[0], new_position[1], self.screen))
+            
+            if event.type == pygame.USEREVENT:
+                self.countdown -= 1
+                if self.countdown <= 0:
+                    self.zombies.clear()
+                    self.state.setState('game_over')
+            
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE or event.key == pygame.K_p or event.key == pygame.K_SPACE:
+                    self.state.setState('pause')
+        
+        self.screen.blit(image.background, (0, 0))
+        self.screen.blit(self.pause_icon, (750, 10))
+        self.drawZombies()
+        
+        self.displayScore()
+        self.displayMissed()
+        self.displayTime()
+        
+        pygame.mouse.set_visible(False)
+        self.cursor_rect.center = pygame.mouse.get_pos()
+        self.screen.blit(self.cursor_img, self.cursor_rect)
+
 #####################################################################
 
-class Pause:
-    def __init__ (self):
+class PauseGame:
+    def __init__ (self, screen, state, play_game):
+        pass
 
 #####################################################################
 
 class GameOver:
-    def __init__ (self):
-    
+    def __init__ (self, screen, state, play_game):
+        self.screen = screen
+        self.state = state
+        self.play_game = play_game
+        self.font = pygame.font.Font('fonts/m5x7.ttf', 50)
+        self.game_over_center = image.game_over.get_rect().center
+        self.position = 0
+        self.transition_speed = 10
+        self.menu_hangover = False
+        self.play_again_hangover = False
+        self.menu_text = self.font.render("Menu", True, WHITE)
+        self.play_again_text = self.font.render("Play Again", True, WHITE)
         
+    def resetState(self):
+        self.position = 0
+        
+    def run(self):
+        pygame.mouse.set_visible(True)
+        mouse = pygame.mouse.get_pos()
+        
+        if 285 <= mouse[0] <= 515 and 462 <= mouse[1] <= 545:
+            self.play_again_hangover = True
+        else:
+            self.play_again_hangover = False
+        if 285 <= mouse[0] <= 567 and 473 <= mouse[1] <= 650:
+            self.menu_hangover = True
+        else:
+            self.menu_hangover = False
+        
+        if self.menu_hangover:
+            self.menu_text = self.font.render("Menu", True, YELLOW)
+        else: 
+            self.menu_text = self.font.render("Menu", True, WHITE)
+        if self.play_again_hangover:
+            self.play_again_text = self.font.render("Play Again", True, YELLOW)
+        else:
+            self.play_again_text = self.font.render("Play Again", True, WHITE)
+                
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+                
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    if 285 <= mouse[0] <= 515 and 462 <= mouse[1] <= 545:
+                        self.state.setState('play_game')
+                        self.resetState()
+                        self.play_game.resetState()
+                    if 285 <= mouse[0] <= 567 and 473 <= mouse[1] <= 650:
+                        self.state.setState('menu')
+                        self.resetState()
+                        self.play_game.resetState()
+        
+        self.screen.blit(image.game_over, (0, 0))
+        self.screen.blit(self.play_again_text, (315, 530))
+        self.screen.blit(self.menu_text, (325, 582))
+        
+        score_text = self.font.render("Score: " + str(self.play_game.getScore()), True, WHITE)
+        score_rect = score_text.get_rect(center=(SCREEN_WIDTH // 2, 272))
+        self.screen.blit(score_text, score_rect)
+        
+        missed_text = self.font.render("Missed: " + str(self.play_game.getMissed()), True, WHITE)
+        missed_rect = missed_text.get_rect(center=(SCREEN_WIDTH // 2, 330))
+        self.screen.blit(missed_text, missed_rect)
 ############## MAIN CLASS ###########################################
 
 class Game:
@@ -235,9 +533,9 @@ class Game:
         self.state = StateManager('intro')
         self.intro = Intro(self.screen, self.state)
         self.menu = Menu(self.screen, self.state)
-        # self.play_game = PlayGame(self.screen, self.state)
-        # self.game_over = GameOver(self.screen, self.state, self.play_game)
-        # self.pause = PauseGame(self.screen, self.state, self.play_game)
+        self.play_game = PlayGame(self.screen, self.state)
+        self.game_over = GameOver(self.screen, self.state, self.play_game)
+        self.pause = PauseGame(self.screen, self.state, self.play_game)
         self.states = {'intro': self.intro, 'menu': self.menu, 'play_game': self.play_game, 'game_over': self.game_over, 'pause': self.pause}
         
     def run(self):
