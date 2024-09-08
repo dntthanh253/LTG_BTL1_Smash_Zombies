@@ -10,7 +10,7 @@ SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
 FPS = 60
 GAME_NAME = "Smash Zombies"
-GAME_TIME = 20 #seconds
+GAME_TIME = 21 #seconds
 
 ZOMBIE_WIDTH = 94
 ZOMBIE_HEIGHT = 94
@@ -19,6 +19,9 @@ ZOMBIE_LIFE_TIME = 2 #seconds
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 YELLOW = (255,250,160)
+
+TURN_OFF_SOUND = False
+
 
 window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 #####################################################################
@@ -181,12 +184,10 @@ class Zombie:
                 self.current_escape_frame += 1           
 
     def canEscape(self):
-        print("graves" + str(self.x) + "life" + str(self.life_time))
+        print("Can escape" + str(self.life_time))
         if self.life_time ==  0:
-            # self.life_time = ZOMBIE_LIFE_TIME
             return True
         self.life_time -= 1
-        
 #####################################################################
 
 class Intro:
@@ -195,8 +196,7 @@ class Intro:
         self.state = state
         self.font = pygame.font.Font('fonts/m5x7.ttf', 50)
         # time variables
-        self.interval = 500 # in milliseconds
-        self.delay = 100
+        self.interval = 100 # in milliseconds
         self.current = pygame.time.get_ticks() # time count tu luc lib pygame duoc chay den thoi diem hien tai
         self.next = self.current + self.interval
         self.index = 0
@@ -242,12 +242,12 @@ class Menu:
         self.screen = screen
         self.state = state
         self.font = pygame.font.Font('fonts/m5x7.ttf', 50)
-        self.volume_on = True
         self.quit_hangover = False
         self.play_hangover = False
         self.volume_hangover = False
         
     def run(self):
+        global TURN_OFF_SOUND
         mouse = pygame.mouse.get_pos()
         
         if self.quit_hangover:
@@ -261,12 +261,12 @@ class Menu:
             self.play_text = self.font.render("Play Game", True, WHITE)
             
         if self.volume_hangover:
-            if self.volume_on:
+            if not TURN_OFF_SOUND:
                 self.volume_text = self.font.render("Volume: On", True, YELLOW)
             else:
                 self.volume_text = self.font.render("Volume: Off", True, YELLOW)
         else:
-            if self.volume_on:
+            if not TURN_OFF_SOUND:
                 self.volume_text = self.font.render("Volume: On", True, WHITE)
             else:
                 self.volume_text = self.font.render("Volume: Off", True, WHITE)
@@ -283,11 +283,14 @@ class Menu:
                         pygame.quit()
                         sys.exit()
                     if 542 <= mouse[0] <= 773 and 473 <= mouse[1] <= 555:
-                        if self.volume_on:    
+                        TURN_OFF_SOUND = not TURN_OFF_SOUND
+                        if TURN_OFF_SOUND:    
                             sound.turnOff('background')
                         else:    
                             sound.turnOn('background') 
-                        self.volume_on = not self.volume_on       
+                        print("Volume clicked" + str(TURN_OFF_SOUND))
+
+                            
 
         if 285 <= mouse[0] <= 515 and 514 <= mouse[1] <= 596:
             self.play_hangover = True
@@ -326,11 +329,12 @@ class PlayGame:
         
         self.font = pygame.font.Font('fonts/m5x7.ttf', 50)
         self.score = 0
-        self.click_count = 0
+        # self.click_count = 0
         self.zombies = []
         self.generate_zombie = pygame.USEREVENT + 1
         self.appear_interval = 2000
         self.remove_interval = 2
+        self.escape_count = 0
         
         pygame.time.set_timer(self.generate_zombie, self.appear_interval)
         pygame.time.set_timer(pygame.USEREVENT, 1000)
@@ -338,14 +342,14 @@ class PlayGame:
 
     def resetState(self):
         self.countdown = self.period
-        self.click_count = 0
+        # self.click_count = 0
         self.score = 0
         
     def getScore(self):
         return self.score
     
-    def getMissed(self):
-        return self.click_count - self.score
+    # def getMissed(self):
+    #     return self.click_count - self.score
     
     def checkEmptyGraves(self, position):
         for zombie in self.zombies:
@@ -378,7 +382,8 @@ class PlayGame:
             if self.checkCollision(position[0], position[1], zombie.x, zombie.y) and zombie.state == ZombieState.IDLE:
                 self.score += 1
                 zombie.changeState(ZombieState.DEAD)
-                sound.turnOn('dead')
+                if not TURN_OFF_SOUND:
+                    sound.turnOn('dead')
                 zombie.draw()
                 zombie.hit_time = current
                 
@@ -386,23 +391,25 @@ class PlayGame:
         for zombie in self.zombies:
             current = pygame.time.get_ticks()   
             if zombie.canEscape():
-                zombie.changeState(ZombieState.ESCAPE)
+                if zombie.state == ZombieState.IDLE:
+                    zombie.changeState(ZombieState.ESCAPE)
+                    zombie.escape_time = current
+                    self.escape_count += 1
                 zombie.draw()
-                zombie.escape_time = current
-            if zombie.state == ZombieState.DEAD and current - zombie.hit_time > 2:
+            if zombie.state == ZombieState.DEAD:
                 self.zombies.remove(zombie)
-            if zombie.state == ZombieState.ESCAPE and current - zombie.escape_time > 2:
+            if zombie.state == ZombieState.ESCAPE and current - zombie.escape_time >= 2:
                 self.zombies.remove(zombie)
                 zombie.changeState(ZombieState.NONE)
                 
     def displayMissed(self):
-        missed_text = self.font.render("Missed: " + str(self.getMissed()), True, WHITE)
+        missed_text = self.font.render("Missed: " + str(self.escape_count), True, WHITE)
         self.screen.blit(missed_text, (20, 10))
         
     def displayScore(self):
         score_text = self.font.render("Score: " + str(self.getScore()), True, WHITE)
         self.screen.blit(score_text, (20, 50))
-    
+            
     def displayTime(self):
         time_text = self.font.render("Time: " + str(self.countdown), True, WHITE)
         self.screen.blit(time_text, (20, 90))
@@ -420,9 +427,10 @@ class PlayGame:
                     if self.pause_icon_rect.collidepoint(click_position):
                         self.state.setState('pause')
                     else:
-                        self.click_count += 1
+                        # self.click_count += 1
                         self.checkZombieSmashed(click_position)
-                        sound.turnOn('sword')
+                        if not TURN_OFF_SOUND:
+                            sound.turnOn('sword')
                 else:
                     self.cursor_img = image.sword
                     
@@ -526,7 +534,7 @@ class GameOver:
         score_rect = score_text.get_rect(center=(SCREEN_WIDTH // 2, 280))
         self.screen.blit(score_text, score_rect)
         
-        missed_text = self.font.render("Missed: " + str(self.play_game.getMissed()), True, WHITE)
+        missed_text = self.font.render("Missed: " + str(self.play_game.escape_count), True, WHITE)
         missed_rect = missed_text.get_rect(center=(SCREEN_WIDTH // 2, 330))
         self.screen.blit(missed_text, missed_rect)
 ############## MAIN CLASS ###########################################
