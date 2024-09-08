@@ -2,6 +2,7 @@ import pygame
 import sys
 import random
 import math
+import time
 from enum import Enum
 from spritesheets.spritesheet import Spritesheet
 
@@ -156,6 +157,7 @@ class Zombie:
             if self.current_spawn_frame < len(spawn_frames):
                 frame = spawn_frames[self.current_spawn_frame]
                 self.screen.blit(frame, (self.x, self.y))
+                time.sleep(0.05)
                 self.current_spawn_frame += 1
             else:
                 self.changeState(ZombieState.IDLE)
@@ -169,6 +171,7 @@ class Zombie:
             if self.current_dead_frame < len(dead_frames):
                 frame = dead_frames[self.current_dead_frame]
                 self.screen.blit(frame, (self.x, self.y))
+                time.sleep(0.05)
                 self.current_dead_frame += 1
 
         if self.state == ZombieState.ESCAPE:    
@@ -368,7 +371,7 @@ class PlayGame:
     def checkZombieSmashed(self, position):
         current = pygame.time.get_ticks()
         for zombie in self.zombies:
-            if self.checkCollision(position[0], position[1], zombie.x, zombie.y) and zombie.state == ZombieState.SPAWN:
+            if self.checkCollision(position[0], position[1], zombie.x, zombie.y) and zombie.state == ZombieState.IDLE:
                 self.score += 1
                 zombie.changeState(ZombieState.DEAD)
                 sound.turnOn('dead')
