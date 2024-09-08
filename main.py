@@ -14,7 +14,7 @@ GAME_TIME = 20 #seconds
 
 ZOMBIE_WIDTH = 94
 ZOMBIE_HEIGHT = 94
-ZOMBIE_LIFE_TIME = 2000 #ms
+ZOMBIE_LIFE_TIME = 2 #seconds
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -181,10 +181,12 @@ class Zombie:
                 self.current_escape_frame += 1           
 
     def canEscape(self):
+        print("graves" + str(self.x) + "life" + str(self.life_time))
         if self.life_time ==  0:
-            self.life_time = ZOMBIE_LIFE_TIME
+            # self.life_time = ZOMBIE_LIFE_TIME
             return True
-        self.life_time = -1
+        self.life_time -= 1
+        
 #####################################################################
 
 class Intro:
@@ -327,10 +329,12 @@ class PlayGame:
         self.click_count = 0
         self.zombies = []
         self.generate_zombie = pygame.USEREVENT + 1
-        self.appear_interval = 2000 
+        self.appear_interval = 2000
+        self.remove_interval = 2
         
         pygame.time.set_timer(self.generate_zombie, self.appear_interval)
         pygame.time.set_timer(pygame.USEREVENT, 1000)
+        pygame.time.set_timer(self.remove_interval, 1000)
 
     def resetState(self):
         self.countdown = self.period
@@ -385,9 +389,9 @@ class PlayGame:
                 zombie.changeState(ZombieState.ESCAPE)
                 zombie.draw()
                 zombie.escape_time = current
-            if zombie.state == ZombieState.DEAD and current - zombie.hit_time > 2000:
+            if zombie.state == ZombieState.DEAD and current - zombie.hit_time > 2:
                 self.zombies.remove(zombie)
-            if zombie.state == ZombieState.ESCAPE and current - zombie.escape_time > 2000:
+            if zombie.state == ZombieState.ESCAPE and current - zombie.escape_time > 2:
                 self.zombies.remove(zombie)
                 zombie.changeState(ZombieState.NONE)
                 
@@ -423,11 +427,12 @@ class PlayGame:
                     self.cursor_img = image.sword
                     
             if event.type == self.generate_zombie:
-                self.removeZombie()
                 if len(self.zombies) < 7:
                     new_position = self.generateZombie()
                     self.zombies.append(Zombie(new_position[0], new_position[1], self.screen))
-            
+            if event.type == self.remove_interval:
+                self.removeZombie()
+                
             if event.type == pygame.USEREVENT:
                 self.countdown -= 1
                 if self.countdown <= 0:
