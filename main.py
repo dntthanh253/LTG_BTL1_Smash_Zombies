@@ -21,11 +21,9 @@ BLACK = (0, 0, 0)
 YELLOW = (255,250,160)
 
 TURN_OFF_SOUND = False
-
-
 window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-#####################################################################
 
+#####################################################################
 class Image:
     def __init__(self):
         self.background = pygame.image.load('images/background.jpg') # Background image
@@ -33,6 +31,7 @@ class Image:
         self.sword = pygame.image.load('images/sword.png') # Sword image
         self.click_sword = pygame.image.load('images/click_sword.png') # Click sword image
         self.pause = pygame.image.load('images/pause.png') # Pause image
+        self.pause_background = pygame.image.load('images/pause_bg.png') # Pause background image
         self.game_over = pygame.image.load('images/game_over.png') # Game over image
     
 image = Image()
@@ -184,7 +183,6 @@ class Zombie:
                 self.current_escape_frame += 1           
 
     def canEscape(self):
-        print("Can escape" + str(self.life_time))
         if self.life_time ==  0:
             return True
         self.life_time -= 1
@@ -288,10 +286,7 @@ class Menu:
                             sound.turnOff('background')
                         else:    
                             sound.turnOn('background') 
-                        print("Volume clicked" + str(TURN_OFF_SOUND))
-
                             
-
         if 285 <= mouse[0] <= 515 and 514 <= mouse[1] <= 596:
             self.play_hangover = True
         else:
@@ -329,7 +324,6 @@ class PlayGame:
         
         self.font = pygame.font.Font('fonts/m5x7.ttf', 50)
         self.score = 0
-        # self.click_count = 0
         self.zombies = []
         self.generate_zombie = pygame.USEREVENT + 1
         self.appear_interval = 2000
@@ -342,14 +336,10 @@ class PlayGame:
 
     def resetState(self):
         self.countdown = self.period
-        # self.click_count = 0
         self.score = 0
         
     def getScore(self):
         return self.score
-    
-    # def getMissed(self):
-    #     return self.click_count - self.score
     
     def checkEmptyGraves(self, position):
         for zombie in self.zombies:
@@ -427,7 +417,6 @@ class PlayGame:
                     if self.pause_icon_rect.collidepoint(click_position):
                         self.state.setState('pause')
                     else:
-                        # self.click_count += 1
                         self.checkZombieSmashed(click_position)
                         if not TURN_OFF_SOUND:
                             sound.turnOn('sword')
@@ -467,7 +456,56 @@ class PlayGame:
 
 class PauseGame:
     def __init__ (self, screen, state, play_game):
-        pass
+        self.screen = screen
+        self.state = state
+        self.play_game = play_game
+        self.font = pygame.font.Font('fonts/m5x7.ttf', 50)
+        self.pause_center = image.pause.get_rect().center
+        self.transition_speed = 10
+        self.resume_hangover = False
+        self.menu_hangover = False
+        self.resume_text = self.font.render("Resume", True, WHITE)
+        self.menu_text = self.font.render("Menu", True, WHITE)
+    
+    def run(self):
+        pygame.mouse.set_visible(True)
+        mouse = pygame.mouse.get_pos()
+        
+        if 285 <= mouse[0] <= 515 and 292 <= mouse[1] <= 375:
+            self.resume_hangover = True
+        else:
+            self.resume_hangover = False
+        if 285 <= mouse[0] <= 515 and 397 <= mouse[1] <= 480:
+            self.menu_hangover = True
+        else:
+            self.menu_hangover = False
+        
+        if self.resume_hangover:
+            self.resume_text = self.font.render("Resume", True, YELLOW)
+        else: 
+            self.resume_text = self.font.render("Resume", True, WHITE)
+        if self.menu_hangover:
+            self.menu_text = self.font.render("Menu", True, YELLOW)
+        else:
+            self.menu_text = self.font.render("Menu", True, WHITE)
+                
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+                
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    if 285 <= mouse[0] <= 515 and 292 <= mouse[1] <= 375:
+                        self.state.setState('play_game')
+                    if 285 <= mouse[0] <= 515 and 397 <= mouse[1] <= 480:
+                        self.state.setState('menu')
+                        self.play_game.resetState()
+        
+        self.screen.blit(image.pause_background, (0, 0))
+        self.screen.blit(self.resume_text, (338, 310))
+        self.screen.blit(self.menu_text, (360, 415))
+        
 
 #####################################################################
 
@@ -478,15 +516,11 @@ class GameOver:
         self.play_game = play_game
         self.font = pygame.font.Font('fonts/m5x7.ttf', 50)
         self.game_over_center = image.game_over.get_rect().center
-        self.position = 0
         self.transition_speed = 10
         self.menu_hangover = False
         self.play_again_hangover = False
         self.menu_text = self.font.render("Menu", True, WHITE)
         self.play_again_text = self.font.render("Play Again", True, WHITE)
-        
-    def resetState(self):
-        self.position = 0
         
     def run(self):
         pygame.mouse.set_visible(True)
@@ -519,11 +553,9 @@ class GameOver:
                 if event.button == 1:
                     if 285 <= mouse[0] <= 515 and 405 <= mouse[1] <= 488:
                         self.state.setState('play_game')
-                        self.resetState()
                         self.play_game.resetState()
                     if 285 <= mouse[0] <= 515 and 510 <= mouse[1] <= 593:
                         self.state.setState('menu')
-                        self.resetState()
                         self.play_game.resetState()
         
         self.screen.blit(image.game_over, (0, 0))
@@ -565,6 +597,6 @@ class Game:
             
 #####################################################################
 
-if __name__ == "__main__":  # run the class Game
+if __name__ == "__main__":  
     game = Game()
     game.run()
