@@ -9,7 +9,7 @@ SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 800
 FPS = 60
 GAME_NAME = "Smash Zombies"
-GAME_TIME = 5 #seconds
+GAME_TIME = 20 #seconds
 
 ZOMBIE_WIDTH = 94
 ZOMBIE_HEIGHT = 94
@@ -312,7 +312,7 @@ class PlayGame:
         self.state = state
         self.period = GAME_TIME
         self.countdown = self.period
-        self.graves = [(195, 64), (516, 116), (143, 328), (413, 434), (25 , 329), (00 , 540), (71, 596)]
+        self.graves = [(195, 64), (516, 116), (143, 328), (625 , 328), (413, 434), (200 , 540), (571, 596)]
         
         self.cursor_img = image.sword
         self.cursor_rect = self.cursor_img.get_rect()
@@ -390,15 +390,15 @@ class PlayGame:
                 
     def displayMissed(self):
         missed_text = self.font.render("Missed: " + str(self.getMissed()), True, WHITE)
-        self.screen.blit(missed_text, (50, 10))
+        self.screen.blit(missed_text, (20, 10))
         
     def displayScore(self):
         score_text = self.font.render("Score: " + str(self.getScore()), True, WHITE)
-        self.screen.blit(score_text, (50, 50))
+        self.screen.blit(score_text, (20, 50))
     
     def displayTime(self):
         time_text = self.font.render("Time: " + str(self.countdown), True, WHITE)
-        self.screen.blit(time_text, (50, 90))
+        self.screen.blit(time_text, (20, 90))
         
     def run(self):
         for event in pygame.event.get():
@@ -436,7 +436,7 @@ class PlayGame:
                     self.state.setState('pause')
         
         self.screen.blit(image.background, (0, 0))
-        self.screen.blit(self.pause_icon, (735, 20))
+        self.screen.blit(self.pause_icon, (740, 15))
         self.drawZombies()
         
         self.displayScore()
