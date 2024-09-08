@@ -5,7 +5,7 @@ class Spritesheet:
     def __init__(self, filename):
         pygame.display.init()
         self.filename = filename
-        self.sprite_sheet = pygame.image.load(filename).convert()
+        self.sprite_sheet = pygame.image.load(filename).convert_alpha()
         self.meta_data = self.filename.replace('png', 'json')
         with open(self.meta_data) as f:
             self.data = json.load(f)
@@ -13,7 +13,7 @@ class Spritesheet:
 
     def get_sprite(self, x, y, w, h):
         sprite = pygame.Surface((w, h))
-        sprite.set_colorkey((0,0,0))
+        sprite.set_colorkey((0,0,0), pygame.SRCALPHA)
         sprite.blit(self.sprite_sheet,(0, 0),(x, y, w, h))
         return sprite
 
