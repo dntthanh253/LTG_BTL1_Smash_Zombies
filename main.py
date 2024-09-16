@@ -14,7 +14,6 @@ GAME_TIME = 21 #seconds
 
 ZOMBIE_WIDTH = 94
 ZOMBIE_HEIGHT = 94
-ZOMBIE_LIFE_TIME = 2 #seconds
 ZOMBIE_LIFE_TIME = random.randint(2,5) #seconds
 
 WHITE = (255, 255, 255)
