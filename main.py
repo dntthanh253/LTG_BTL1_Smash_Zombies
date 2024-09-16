@@ -110,7 +110,6 @@ dead_frames = [
     my_spritesheet.parse_sprite('dead5.png'), 
     my_spritesheet.parse_sprite('dead6.png'),
     my_spritesheet.parse_sprite('dead7.png'),
-    my_spritesheet.parse_sprite('dead8.png')
     my_spritesheet.parse_sprite('dead8.png'),
 ]
 escape_frames = [
@@ -127,7 +126,6 @@ escape_frames = [
     my_spritesheet.parse_sprite('escape11.png'),
     my_spritesheet.parse_sprite('escape12.png'),
     my_spritesheet.parse_sprite('escape13.png'),
-    my_spritesheet.parse_sprite('escape14.png')
     my_spritesheet.parse_sprite('escape14.png'),
 ]
 
@@ -160,38 +158,27 @@ class Zombie:
     def draw(self):
         if self.state == ZombieState.SPAWN:
             if self.current_spawn_frame < len(spawn_frames):
-                frame = spawn_frames[self.current_spawn_frame]
                 frame = spawn_frames[int(self.current_spawn_frame)]
                 self.screen.blit(frame, (self.x, self.y))
-                time.sleep(0.05)
-                self.current_spawn_frame += 1
-                
                 self.current_spawn_frame += 0.2
             else:
                 self.changeState(ZombieState.IDLE)
                 
         if self.state == ZombieState.IDLE: #when zombie is smashed, how to change current_frame to 0 ??
-            frame = idle_frames[self.current_idle_frame]
             frame = idle_frames[int(self.current_idle_frame)]
             self.screen.blit(frame, (self.x, self.y))
-            self.current_idle_frame = (self.current_idle_frame + 1) % len(idle_frames)
             self.current_idle_frame = (self.current_idle_frame + 0.2) % len(idle_frames)
             
         if self.state == ZombieState.DEAD:
             if self.current_dead_frame < len(dead_frames):
-                frame = dead_frames[self.current_dead_frame]
                 frame = dead_frames[int(self.current_dead_frame)]
                 self.screen.blit(frame, (self.x, self.y))
-                time.sleep(0.05)
-                self.current_dead_frame += 1
                 self.current_dead_frame += 0.2
 
         if self.state == ZombieState.ESCAPE:    
             if self.current_escape_frame < len(escape_frames):
-                frame = escape_frames[self.current_escape_frame]
                 frame = escape_frames[int(self.current_escape_frame)]
                 self.screen.blit(frame, (self.x, self.y))
-                self.current_escape_frame += 1           
                 self.current_escape_frame += 0.2           
 
     def canEscape(self):
@@ -388,7 +375,6 @@ class PlayGame:
                     sound.turnOn('dead')
                 zombie.draw()
                 zombie.hit_time = current
-                
             if self.checkCollision(position[0], position[1], zombie.x, zombie.y) and zombie.state == ZombieState.SPAWN:
                 self.score += 1
                 zombie.changeState(ZombieState.DEAD)
